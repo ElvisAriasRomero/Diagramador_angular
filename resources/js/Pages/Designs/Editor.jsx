@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePage } from '@inertiajs/react';
-import CanvasBoard from '@/components/editor/CanvasBoard';
+import CanvasBoard from '@/Pages/Designs/CanvasBoard';
+
 
 export default function Editor() {
   const { project, design } = usePage().props;
@@ -13,8 +14,8 @@ export default function Editor() {
         <p className="text-gray-600">Diseño: {design.name}</p>
       </header>
 
-      {/* Canvas real */}
-      <CanvasBoard />
+      {/* Pasamos el canvas_data al CanvasBoard */}
+      <CanvasBoard initialElements={design.canvas_data ? JSON.parse(design.canvas_data) : []} designId={design.id} design={design} />
     </div>
   );
 }

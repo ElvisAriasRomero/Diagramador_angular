@@ -31,6 +31,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('projects', ProjectController::class);
     Route::resource('projects.designs', DesignController::class)->shallow();
 
+    Route::get('designs/{design}/editor', [DesignController::class, 'openEditor'])->name('designs.editor');
+    
+
+
 
 });
 

@@ -33,8 +33,8 @@ export default function Index() {
                 Eliminar
               </Link>
               <Link
-                href={route('designs.edit', [project.id, design.id])}
-                className="text-green-600"
+                href={route('designs.editor', design.id)}
+                className="text-green-600 hover:underline"
               >
                 Abrir Editor
               </Link>
