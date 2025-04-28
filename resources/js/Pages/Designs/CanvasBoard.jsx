@@ -3,6 +3,9 @@ import { Stage, Layer, Rect, Text, Group, Transformer } from 'react-konva';
 import { router } from '@inertiajs/react';
 import PropertiesPanel from './PropertiesPanel';
 
+import { Image as KonvaImage } from 'react-konva';
+
+
 import ExportButton from '@/utils/ExportButton';
 
 export default function CanvasBoard({ initialElements, designId, design }) {
@@ -209,7 +212,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
             y: 300,
             width: 300,
             height: 300,
-            backgroundColor: '#f8f9fa',
+            backgroundColor: '#68B8F8',
             cornerRadius: 4,
             draggable: true,
           },
@@ -331,7 +334,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
       </div>
 
       {/* 🚀 Aquí añadimos el botón para exportar */}
-      <ExportButton elements={elements} />
+      <ExportButton elements={elements} designName={design.name} />
 
     </div>
   );
