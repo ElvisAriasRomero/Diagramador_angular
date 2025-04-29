@@ -2,11 +2,35 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Group, Transformer } from 'react-konva';
 import { router } from '@inertiajs/react';
 import PropertiesPanel from './PropertiesPanel';
-
 import { Image as KonvaImage } from 'react-konva';
-
-
 import ExportButton from '@/utils/ExportButton';
+
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
+window.Pusher = Pusher;
+
+const echo = new Echo({
+  broadcaster: 'pusher',
+  key: 'local',
+  cluster: 'mt1',
+  wsHost: window.location.hostname,
+  wsPort: 6001,
+  forceTLS: false,
+  disableStats: true,
+  enabledTransports: ['ws'],
+});
+
+// const echo = new Echo({
+//     broadcaster: 'pusher',
+//     key: import.meta.env.VITE_PUSHER_APP_KEY,
+//     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+//     wsHost: import.meta.env.VITE_PUSHER_HOST,
+//     wsPort: import.meta.env.VITE_PUSHER_PORT,
+//     forceTLS: false,
+//     disableStats: true,
+//     enabledTransports: ['ws'],
+//   });
 
 export default function CanvasBoard({ initialElements, designId, design }) {
   const [elements, setElements] = useState([]);
@@ -18,6 +42,21 @@ export default function CanvasBoard({ initialElements, designId, design }) {
   useEffect(() => {
     setElements(initialElements);
   }, [initialElements]);
+
+  useEffect(() => {
+    const channel = echo.channel(`design.${designId}`);
+
+    channel.listen('.DesignUpdated', (e) => {
+      console.log('🔄 Diseño actualizado vía socket:', e);
+      if (e.canvasData) {
+        setElements(JSON.parse(e.canvasData));
+      }
+    });
+
+    return () => {
+      channel.stopListening('.DesignUpdated');
+    };
+  }, [designId]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -81,148 +120,41 @@ export default function CanvasBoard({ initialElements, designId, design }) {
         newElement = {
           id,
           type,
-          props: {
-            x: 50,
-            y: 50,
-            width: 120,
-            height: 40,
-            fill: '#3498db',
-            text: 'Button',
-            fontSize: 18,
-            color: '#ffffff',
-            cornerRadius: 4,
-            draggable: true,
-          },
+          props: { x: 50, y: 50, width: 120, height: 40, fill: '#3498db', text: 'Button', fontSize: 18, color: '#ffffff', cornerRadius: 4, draggable: true },
         };
         break;
       case 'input':
         newElement = {
           id,
           type,
-          props: {
-            x: 50,
-            y: 150,
-            width: 200,
-            height: 40,
-            placeholder: 'Input text...',
-            borderColor: '#cccccc',
-            text: 'Input',
-            fontSize: 16,
-            color: '#000000',
-            draggable: true,
-          },
+          props: { x: 50, y: 150, width: 200, height: 40, placeholder: 'Input text...', text: 'Input', borderColor: '#cccccc', fontSize: 16, color: '#000000', draggable: true },
         };
         break;
       case 'checkbox':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 50,
-            y: 250,
-            width: 20,
-            height: 20,
-            checked: false,
-            draggable: true,
-          },
-        };
+        newElement = { id, type, props: { x: 50, y: 250, width: 20, height: 20, checked: false, draggable: true } };
         break;
       case 'select':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 50,
-            y: 350,
-            width: 200,
-            height: 40,
-            options: ['Option 1', 'Option 2'],
-            text: 'Select',
-            fontSize: 16,
-            color: '#000000',
-            draggable: true,
-          },
-        };
+        newElement = { id, type, props: { x: 50, y: 350, width: 200, height: 40, options: ['Option 1', 'Option 2'], text: 'Select', fontSize: 16, color: '#000000', draggable: true } };
         break;
       case 'image':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 100,
-            y: 400,
-            src: '',
-            width: 100,
-            height: 100,
-            draggable: true,
-          },
-        };
+        newElement = { id, type, props: { x: 100, y: 400, src: '', width: 100, height: 100, draggable: true } };
         break;
       case 'text':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 100,
-            y: 500,
-            text: 'Sample Text',
-            fontSize: 24,
-            fill: '#000000',
-            draggable: true,
-          },
-        };
+        newElement = { id, type, props: { x: 100, y: 500, text: 'Sample Text', fontSize: 24, fill: '#000000', draggable: true } };
         break;
       case 'card':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 200,
-            y: 100,
-            width: 300,
-            height: 200,
-            backgroundColor: '#00E5A8',
-            borderColor: '#00E5A8',
-            borderWidth: 2,
-            draggable: true,
-          },
-        };
+        newElement = { id, type, props: { x: 200, y: 100, width: 300, height: 200, backgroundColor: '#00E5A8', borderColor: '#00E5A8', borderWidth: 2, draggable: true } };
         break;
       case 'grid':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 300,
-            y: 200,
-            rows: 2,
-            columns: 2,
-            width: 400,
-            height: 400,
-            draggable: true,
-          },
-        };
+        newElement = { id, type, props: { x: 300, y: 200, rows: 2, columns: 2, width: 400, height: 400, draggable: true } };
         break;
       case 'container':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 400,
-            y: 300,
-            width: 300,
-            height: 300,
-            backgroundColor: '#68B8F8',
-            cornerRadius: 4,
-            draggable: true,
-          },
-        };
+        newElement = { id, type, props: { x: 400, y: 300, width: 300, height: 300, backgroundColor: '#68B8F8', cornerRadius: 4, draggable: true } };
         break;
       default:
         return;
     }
-
-    setElements([...elements, newElement]);
+    setElements((prev) => [...prev, newElement]);
   };
 
   const bringForward = () => {
@@ -254,27 +186,24 @@ export default function CanvasBoard({ initialElements, designId, design }) {
 
   return (
     <div className="flex flex-col relative">
-
       <PropertiesPanel
-        selectedElement={elements.find((el) => el.id === selectedId)}
+        selectedElement={elements.find(el => el.id === selectedId)}
         updateElement={(updatedEl) => {
-          setElements((prev) =>
-            prev.map((el) => (el.id === updatedEl.id ? updatedEl : el))
-          );
+          setElements(prev => prev.map(el => (el.id === updatedEl.id ? updatedEl : el)));
         }}
         setIsEditing={setIsEditing}
       />
 
       <div className="flex flex-wrap gap-2 mb-4">
-        <button onClick={() => addElement('button')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Button</button>
-        <button onClick={() => addElement('input')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Input</button>
-        <button onClick={() => addElement('checkbox')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Checkbox</button>
-        <button onClick={() => addElement('select')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Select</button>
-        <button onClick={() => addElement('image')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Image</button>
-        <button onClick={() => addElement('text')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Text</button>
-        <button onClick={() => addElement('card')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Card</button>
-        <button onClick={() => addElement('grid')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Grid</button>
-        <button onClick={() => addElement('container')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Container</button>
+        {['button', 'input', 'checkbox', 'select', 'image', 'text', 'card', 'grid', 'container'].map(type => (
+          <button
+            key={type}
+            onClick={() => addElement(type)}
+            className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded capitalize"
+          >
+            {type}
+          </button>
+        ))}
         <button onClick={handleSave} className="bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded">Guardar Diseño</button>
         <button onClick={bringForward} className="bg-yellow-400 hover:bg-yellow-500 text-white py-1 px-2 rounded">Traer Adelante</button>
         <button onClick={sendBackward} className="bg-yellow-400 hover:bg-yellow-500 text-white py-1 px-2 rounded">Enviar Atrás</button>
@@ -298,14 +227,13 @@ export default function CanvasBoard({ initialElements, designId, design }) {
                 onClick={() => setSelectedId(el.id)}
                 onTap={() => setSelectedId(el.id)}
               >
-                {(el.type === 'text') && (
+                {el.type === 'text' ? (
                   <Text
                     text={el.props.text}
                     fontSize={el.props.fontSize}
                     fill={el.props.fill || '#000'}
                   />
-                )}
-                {(el.type !== 'text') && (
+                ) : (
                   <>
                     <Rect
                       width={el.props.width}
@@ -313,7 +241,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
                       fill={el.props.fill || el.props.backgroundColor || '#ccc'}
                       cornerRadius={el.props.cornerRadius || 0}
                     />
-                    {(el.props.text) && (
+                    {el.props.text && (
                       <Text
                         text={el.props.text}
                         fontSize={el.props.fontSize || 16}
@@ -333,9 +261,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
         </Stage>
       </div>
 
-      {/* 🚀 Aquí añadimos el botón para exportar */}
       <ExportButton elements={elements} designName={design.name} />
-
     </div>
   );
 }

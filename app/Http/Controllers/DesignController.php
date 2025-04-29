@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
+use App\Events\DesignUpdated;
+
 class DesignController extends Controller
 {
     public function index(Project $project)
@@ -67,6 +69,9 @@ class DesignController extends Controller
             'name' => $request->name,
             'canvas_data' => $request->canvas_data,
         ]);
+
+        // 🔥 Emitimos el evento para que todos los conectados al diseño lo reciban
+        event(new DesignUpdated($design->id, $design->canvas_data));
 
         return redirect()->route('projects.designs.index', $design->project)->with('success', 'Diseño actualizado.');
     }
