@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\DesignController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\CollaboratorController;
+use Illuminate\Support\Facades\Broadcast;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -36,6 +37,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/projects/{project}/collaborators', [CollaboratorController::class, 'add'])->name('projects.collaborators.add');
         Route::delete('/projects/{project}/collaborators/{user}', [CollaboratorController::class, 'remove'])->name('projects.collaborators.remove');
     });
+
+    // Ruta de autenticación de broadcasting
+    Broadcast::routes(['middleware' => ['web', 'auth']]);
 });
 
 require __DIR__.'/auth.php';

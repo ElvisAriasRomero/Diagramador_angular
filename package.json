@@ -20,6 +20,7 @@
         "vite": "^5.0"
     },
     "dependencies": {
+        "@soketi/soketi": "^1.6.1",
         "file-saver": "^2.0.5",
         "konva": "^9.3.20",
         "laravel-echo": "^2.0.2",

@@ -56,7 +56,17 @@ class DesignController extends Controller
 
     public function update(Request $request, Design $design)
     {
-        if ($design->project->owner_id !== Auth::id()) {
+        $project = $design->project;
+        if (!($project->owner_id === auth()->id() || $project->collaborators()->where('user_id', auth()->id())->exists())) {
+            \Log::warning('Unauthorized design update attempt', [
+                'user_id' => auth()->id(),
+                'design_id' => $design->id,
+                'project_id' => $project->id
+            ]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'No autorizado para actualizar este diseño'], 403);
+            }
             abort(403);
         }
 
@@ -65,15 +75,36 @@ class DesignController extends Controller
             'canvas_data' => 'nullable|json',
         ]);
 
-        $design->update([
-            'name' => $request->name,
-            'canvas_data' => $request->canvas_data,
-        ]);
+        try {
+            $design->update([
+                'name' => $request->name,
+                'canvas_data' => $request->canvas_data,
+            ]);
 
-        // 🔥 Emitimos el evento para que todos los conectados al diseño lo reciban
-        event(new DesignUpdated($design->id, $design->canvas_data));
+            // Emitimos el evento para que todos los conectados al diseño lo reciban
+            event(new DesignUpdated($design->id, $design->canvas_data));
 
-        return redirect()->route('projects.designs.index', $design->project)->with('success', 'Diseño actualizado.');
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Diseño actualizado correctamente',
+                    'design' => $design
+                ]);
+            }
+
+            return redirect()->route('designs.editor', $design->id)->with('success', 'Diseño actualizado correctamente');
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating design:', [
+                'design_id' => $design->id,
+                'error' => $e->getMessage()
+            ]);
+
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Error al actualizar el diseño'], 500);
+            }
+
+            return back()->with('error', 'Error al actualizar el diseño');
+        }
     }
 
     public function destroy(Design $design)

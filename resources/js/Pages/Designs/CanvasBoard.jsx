@@ -9,16 +9,18 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
+window.Pusher.logToConsole = true; // Para depuración
 
 const echo = new Echo({
   broadcaster: 'pusher',
-  key: 'local',
-  cluster: 'mt1',
-  wsHost: window.location.hostname,
+  key: 'app-key',
+  wsHost: 'localhost',
   wsPort: 6001,
+  cluster: 'mt1',
   forceTLS: false,
+  encrypted: false,
+  enabledTransports: ['ws', 'wss'],
   disableStats: true,
-  enabledTransports: ['ws'],
 });
 
 // const echo = new Echo({
@@ -29,13 +31,14 @@ const echo = new Echo({
 //     wsPort: import.meta.env.VITE_PUSHER_PORT,
 //     forceTLS: false,
 //     disableStats: true,
-//     enabledTransports: ['ws'],
+//     enabledTransports: ['wfs'],
 //   });
 
 export default function CanvasBoard({ initialElements, designId, design }) {
   const [elements, setElements] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const trRef = useRef();
   const layerRef = useRef();
 
@@ -44,17 +47,50 @@ export default function CanvasBoard({ initialElements, designId, design }) {
   }, [initialElements]);
 
   useEffect(() => {
+    if (!designId) return;
+
+    console.log('🔄 Intentando conectar al canal:', `design.${designId}`);
+
     const channel = echo.channel(`design.${designId}`);
+
+    // Monitorear el estado de la conexión
+    echo.connector.pusher.connection.bind('connected', () => {
+      console.log('✅ Conexión WebSocket establecida');
+      setIsConnected(true);
+    });
+
+    echo.connector.pusher.connection.bind('disconnected', () => {
+      console.log('❌ Conexión WebSocket perdida');
+      setIsConnected(false);
+    });
+
+    echo.connector.pusher.connection.bind('error', (err) => {
+      console.error('❌ Error en la conexión WebSocket:', err);
+    });
+
+    channel.subscribed(() => {
+      console.log('✅ Suscrito al canal exitosamente');
+    }).error((error) => {
+      console.error('❌ Error al suscribirse al canal:', error);
+    });
 
     channel.listen('.DesignUpdated', (e) => {
       console.log('🔄 Diseño actualizado vía socket:', e);
       if (e.canvasData) {
-        setElements(JSON.parse(e.canvasData));
+        try {
+          const parsedData = JSON.parse(e.canvasData);
+          setElements(parsedData);
+        } catch (error) {
+          console.error('Error parsing canvas data:', error);
+        }
       }
     });
 
     return () => {
+      console.log('🔄 Limpiando conexión WebSocket');
       channel.stopListening('.DesignUpdated');
+      echo.leave(`design.${designId}`);
+      echo.connector.pusher.connection.unbind_all();
     };
   }, [designId]);
 
@@ -177,11 +213,62 @@ export default function CanvasBoard({ initialElements, designId, design }) {
     }
   };
 
-  const handleSave = () => {
-    router.put(route('designs.update', designId), {
-      name: design.name,
-      canvas_data: JSON.stringify(elements),
-    });
+  const handleDragStart = (e) => {
+    const id = e.target.id();
+    setSelectedId(id);
+  };
+
+  const handleDragEnd = (e) => {
+    const id = e.target.id();
+    const element = elements.find(el => el.id === id);
+    if (element) {
+      const newElements = elements.map(el => {
+        if (el.id === id) {
+          return {
+            ...el,
+            props: {
+              ...el.props,
+              x: e.target.x(),
+              y: e.target.y(),
+            },
+          };
+        }
+        return el;
+      });
+      setElements(newElements);
+      handleSave(newElements);
+    }
+  };
+
+  const handleSave = (newElements = elements) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    };
+
+    router.put(
+      route('designs.update', designId),
+      {
+        name: design.name,
+        canvas_data: JSON.stringify(newElements),
+      },
+      {
+        preserveScroll: true,
+        preserveState: true,
+        headers,
+        onSuccess: (response) => {
+          console.log('✅ Diseño guardado correctamente', response);
+        },
+        onError: (errors) => {
+          console.error('❌ Error al guardar el diseño:', errors);
+          if (errors.response?.status === 403) {
+            alert('No tienes permiso para editar este diseño');
+          } else {
+            alert('Error al guardar el diseño. Por favor, intenta de nuevo.');
+          }
+        }
+      }
+    );
   };
 
   return (
@@ -213,8 +300,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
         <Stage
           width={window.innerWidth - 50}
           height={window.innerHeight - 250}
-          onMouseDown={handleStageClick}
-          onTouchStart={handleStageClick}
+          onClick={handleStageClick}
         >
           <Layer ref={layerRef}>
             {elements.map((el, index) => (
@@ -224,8 +310,8 @@ export default function CanvasBoard({ initialElements, designId, design }) {
                 draggable={el.props.draggable}
                 x={el.props.x}
                 y={el.props.y}
-                onClick={() => setSelectedId(el.id)}
-                onTap={() => setSelectedId(el.id)}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
               >
                 {el.type === 'text' ? (
                   <Text
@@ -256,7 +342,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
                 )}
               </Group>
             ))}
-            <Transformer ref={trRef} />
+            {selectedId && <Transformer ref={trRef} />}
           </Layer>
         </Stage>
       </div>

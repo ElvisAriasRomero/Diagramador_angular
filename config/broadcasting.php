@@ -8,16 +8,19 @@ return [
 
         'pusher' => [
             'driver' => 'pusher',
-            'key' => env('PUSHER_APP_KEY', 'local'),
-            'secret' => env('PUSHER_APP_SECRET', 'local'),
-            'app_id' => env('PUSHER_APP_ID', 'local'),
+            'key' => 'app-key',
+            'secret' => 'app-secret',
+            'app_id' => 'app-id',
             'options' => [
-                'cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
-                'useTLS' => false,
-                'host' => env('PUSHER_HOST', '127.0.0.1'),
-                'port' => env('PUSHER_PORT', 6001),
+                'host' => 'localhost',
+                'port' => 6001,
                 'scheme' => 'http',
                 'encrypted' => false,
+                'useTLS' => false,
+            ],
+            'client_options' => [
+                // Guzzle client options
+                'verify' => false,
             ],
         ],
 
