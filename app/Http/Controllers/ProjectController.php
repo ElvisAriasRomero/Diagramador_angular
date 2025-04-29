@@ -14,11 +14,18 @@ class ProjectController extends Controller
 
     public function index()
     {
-        $projects = Project::where('owner_id', Auth::id())->get();
+        $userId = Auth::id();
 
-        return Inertia::render('Projects/Index', [
-            'projects' => $projects,
-        ]);
+    $projects = Project::where('owner_id', $userId)
+        ->orWhereHas('collaborators', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })
+        ->get();
+
+    return Inertia::render('Projects/Index', [
+        'projects' => $projects,
+    ]);
+    
     }
 
     public function create()

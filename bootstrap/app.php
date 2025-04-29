@@ -16,7 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'can_access_project' => \App\Http\Middleware\CanAccessProject::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
