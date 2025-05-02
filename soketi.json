@@ -1,0 +1,20 @@
+{
+  "appManager": {
+    "driver": "array",
+    "array": {
+      "apps": [
+        {
+          "id": "app-id",
+          "key": "e93b1fc4d14251ae99f4713697e253e3",
+          "secret": "app-secret",
+          "maxConnections": -1,
+          "enableClientMessages": true,
+          "enableUserAuthentication": true
+        }
+      ]
+    }
+  },
+  "debug": true,
+  "port": 6001,
+  "host": "localhost"
+}
