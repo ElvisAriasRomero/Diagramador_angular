@@ -12,26 +12,51 @@ class ProjectController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index()
-    {
+//     public function index()
+//     {
+//     $userId = Auth::id();
+
+//     $projects = Project::with('collaborators')->get()->map(function ($project) use ($userId) {
+//         $role = $project->owner_id === $userId ? 'Dueño' : (
+//             $project->collaborators->contains('id', $userId) ? 'Colaborador' : null
+//         );
+
+//         return [
+//             'id' => $project->id,
+//             'name' => $project->name,
+//             'role' => $role,
+//         ];
+//     });
+
+//     return Inertia::render('Projects/Index', [
+//         'projects' => $projects,
+//     ]);
+// }
+public function index()
+{
     $userId = Auth::id();
 
-    $projects = Project::with('collaborators')->get()->map(function ($project) use ($userId) {
-        $role = $project->owner_id === $userId ? 'Dueño' : (
-            $project->collaborators->contains('id', $userId) ? 'Colaborador' : null
-        );
+    $projects = Project::with('collaborators')
+        ->where('owner_id', $userId)
+        ->orWhereHas('collaborators', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })
+        ->get()
+        ->map(function ($project) use ($userId) {
+            $role = $project->owner_id === $userId ? 'Dueño' : 'Colaborador';
 
-        return [
-            'id' => $project->id,
-            'name' => $project->name,
-            'role' => $role,
-        ];
-    });
+            return [
+                'id' => $project->id,
+                'name' => $project->name,
+                'role' => $role,
+            ];
+        });
 
     return Inertia::render('Projects/Index', [
-        'projects' => $projects,
+        'projects' => $projects
     ]);
 }
+
 
     public function create()
     {
