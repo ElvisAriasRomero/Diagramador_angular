@@ -1,3 +1,4 @@
+// PropertiesPanel.jsx
 import React from 'react';
 
 export default function PropertiesPanel({ selectedElement, updateElement, setIsEditing }) {
@@ -20,11 +21,11 @@ export default function PropertiesPanel({ selectedElement, updateElement, setIsE
     <div className="fixed top-4 right-4 w-72 bg-white border shadow-lg p-4 rounded-lg z-50">
       <h2 className="text-xl font-bold mb-4">Propiedades</h2>
 
-      {/* Texto para elementos que lo usan */}
       {(selectedElement.type === 'text' ||
         selectedElement.type === 'button' ||
         selectedElement.type === 'input' ||
-        selectedElement.type === 'select') && (
+        selectedElement.type === 'select' ||
+        selectedElement.type === 'card') && (
         <>
           <div className="mb-4">
             <label className="block mb-1 font-semibold">Texto</label>
@@ -52,7 +53,6 @@ export default function PropertiesPanel({ selectedElement, updateElement, setIsE
         </>
       )}
 
-      {/* Placeholder para Inputs */}
       {selectedElement.type === 'input' && (
         <div className="mb-4">
           <label className="block mb-1 font-semibold">Placeholder</label>
@@ -67,7 +67,6 @@ export default function PropertiesPanel({ selectedElement, updateElement, setIsE
         </div>
       )}
 
-      {/* Color de fondo */}
       {(selectedElement.type === 'button' ||
         selectedElement.type === 'card' ||
         selectedElement.type === 'container') && (
@@ -91,7 +90,6 @@ export default function PropertiesPanel({ selectedElement, updateElement, setIsE
         </div>
       )}
 
-      {/* Color de texto */}
       {(selectedElement.type === 'text' ||
         selectedElement.type === 'button' ||
         selectedElement.type === 'input' ||
@@ -109,7 +107,33 @@ export default function PropertiesPanel({ selectedElement, updateElement, setIsE
         </div>
       )}
 
-      {/* Ancho */}
+      {selectedElement.type === 'grid' && (
+        <>
+          <div className="mb-4">
+            <label className="block mb-1 font-semibold">Filas</label>
+            <input
+              type="number"
+              value={selectedElement.props.rows || 2}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              onChange={(e) => handleChange('rows', parseInt(e.target.value))}
+              className="w-full border px-2 py-1 rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-1 font-semibold">Columnas</label>
+            <input
+              type="number"
+              value={selectedElement.props.columns || 2}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              onChange={(e) => handleChange('columns', parseInt(e.target.value))}
+              className="w-full border px-2 py-1 rounded"
+            />
+          </div>
+        </>
+      )}
+
       <div className="mb-4">
         <label className="block mb-1 font-semibold">Ancho</label>
         <input
@@ -122,7 +146,6 @@ export default function PropertiesPanel({ selectedElement, updateElement, setIsE
         />
       </div>
 
-      {/* Alto */}
       <div className="mb-4">
         <label className="block mb-1 font-semibold">Alto</label>
         <input
@@ -135,7 +158,6 @@ export default function PropertiesPanel({ selectedElement, updateElement, setIsE
         />
       </div>
 
-      {/* Bordes redondeados */}
       {(selectedElement.type === 'button' || selectedElement.type === 'container') && (
         <div className="mb-4">
           <label className="block mb-1 font-semibold">Bordes Redondeados</label>
@@ -150,7 +172,6 @@ export default function PropertiesPanel({ selectedElement, updateElement, setIsE
         </div>
       )}
 
-      {/* Imagen URL */}
       {selectedElement.type === 'image' && (
         <div className="mb-4">
           <label className="block mb-1 font-semibold">URL de Imagen</label>

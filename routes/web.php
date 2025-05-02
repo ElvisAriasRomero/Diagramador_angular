@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('designs/{design}/editor', [DesignController::class, 'openEditor'])->name('designs.editor');
+    Route::put('/designs/{design}', [DesignController::class, 'update'])->name('designs.update');
 
     // Route::resource('projects.designs', DesignController::class)->shallow();
     // Route::put('/designs/{design}', [DesignController::class, 'update'])->name('designs.update');

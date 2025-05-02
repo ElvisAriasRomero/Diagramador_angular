@@ -1,11 +1,8 @@
+// CanvasBoard.jsx actualizado con grid funcional
 import React, { useRef, useState, useEffect } from 'react';
-import { Stage, Layer, Rect, Text, Group, Transformer } from 'react-konva';
+import { Stage, Layer, Rect, Text, Group, Transformer, Image as KonvaImage, Line } from 'react-konva';
 import { router } from '@inertiajs/react';
 import PropertiesPanel from './PropertiesPanel';
-
-import { Image as KonvaImage } from 'react-konva';
-
-
 import ExportButton from '@/utils/ExportButton';
 
 export default function CanvasBoard({ initialElements, designId, design }) {
@@ -22,29 +19,25 @@ export default function CanvasBoard({ initialElements, designId, design }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isEditing) return;
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedId) {
-          setElements((prev) => prev.filter((el) => el.id !== selectedId));
-          setSelectedId(null);
-        }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+        setElements((prev) => prev.filter((el) => el.id !== selectedId));
+        setSelectedId(null);
       }
-      if (e.ctrlKey && e.key === 'd') {
+      if (e.ctrlKey && e.key === 'd' && selectedId) {
         e.preventDefault();
-        if (selectedId) {
-          const element = elements.find((el) => el.id === selectedId);
-          if (element) {
-            const newElement = {
-              ...element,
-              id: `${element.type}-${elements.length + 1}`,
-              props: {
-                ...element.props,
-                x: element.props.x + 20,
-                y: element.props.y + 20,
-              },
-            };
-            setElements((prev) => [...prev, newElement]);
-            setSelectedId(newElement.id);
-          }
+        const element = elements.find((el) => el.id === selectedId);
+        if (element) {
+          const newElement = {
+            ...element,
+            id: `${element.type}-${elements.length + 1}`,
+            props: {
+              ...element.props,
+              x: element.props.x + 20,
+              y: element.props.y + 20,
+            },
+          };
+          setElements((prev) => [...prev, newElement]);
+          setSelectedId(newElement.id);
         }
       }
     };
@@ -68,181 +61,44 @@ export default function CanvasBoard({ initialElements, designId, design }) {
       setSelectedId(null);
       return;
     }
-    const clickedOn = e.target;
-    setSelectedId(clickedOn.id());
+    setSelectedId(e.target.id());
   };
 
   const addElement = (type) => {
     const id = `${type}-${elements.length + 1}`;
-    let newElement = null;
+    let props = { x: 100, y: 100, draggable: true };
 
     switch (type) {
       case 'button':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 50,
-            y: 50,
-            width: 120,
-            height: 40,
-            fill: '#3498db',
-            text: 'Button',
-            fontSize: 18,
-            color: '#ffffff',
-            cornerRadius: 4,
-            draggable: true,
-          },
-        };
+        props = { ...props, width: 120, height: 40, fill: '#3498db', text: 'Button', fontSize: 18, color: '#fff', cornerRadius: 4 };
         break;
       case 'input':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 50,
-            y: 150,
-            width: 200,
-            height: 40,
-            placeholder: 'Input text...',
-            borderColor: '#cccccc',
-            text: 'Input',
-            fontSize: 16,
-            color: '#000000',
-            draggable: true,
-          },
-        };
+        props = { ...props, width: 200, height: 40, text: 'Input', fontSize: 16, color: '#000', borderColor: '#ccc' };
         break;
       case 'checkbox':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 50,
-            y: 250,
-            width: 20,
-            height: 20,
-            checked: false,
-            draggable: true,
-          },
-        };
+        props = { ...props, width: 20, height: 20, checked: false };
         break;
       case 'select':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 50,
-            y: 350,
-            width: 200,
-            height: 40,
-            options: ['Option 1', 'Option 2'],
-            text: 'Select',
-            fontSize: 16,
-            color: '#000000',
-            draggable: true,
-          },
-        };
+        props = { ...props, width: 200, height: 40, options: ['Option 1', 'Option 2'], text: 'Select', fontSize: 16, color: '#000' };
         break;
       case 'image':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 100,
-            y: 400,
-            src: '',
-            width: 100,
-            height: 100,
-            draggable: true,
-          },
-        };
+        props = { ...props, width: 100, height: 100, src: '' };
         break;
       case 'text':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 100,
-            y: 500,
-            text: 'Sample Text',
-            fontSize: 24,
-            fill: '#000000',
-            draggable: true,
-          },
-        };
+        props = { ...props, text: 'Sample Text', fontSize: 24, fill: '#000' };
         break;
       case 'card':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 200,
-            y: 100,
-            width: 300,
-            height: 200,
-            backgroundColor: '#00E5A8',
-            borderColor: '#00E5A8',
-            borderWidth: 2,
-            draggable: true,
-          },
-        };
+        props = { ...props, width: 300, height: 200, backgroundColor: '#f5f5f5', borderColor: '#ccc', borderWidth: 1, text: 'Card Title' };
         break;
       case 'grid':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 300,
-            y: 200,
-            rows: 2,
-            columns: 2,
-            width: 400,
-            height: 400,
-            draggable: true,
-          },
-        };
+        props = { ...props, width: 300, height: 200, rows: 3, columns: 3, lineColor: '#999' };
         break;
       case 'container':
-        newElement = {
-          id,
-          type,
-          props: {
-            x: 400,
-            y: 300,
-            width: 300,
-            height: 300,
-            backgroundColor: '#68B8F8',
-            cornerRadius: 4,
-            draggable: true,
-          },
-        };
+        props = { ...props, width: 300, height: 300, backgroundColor: '#68B8F8', cornerRadius: 4 };
         break;
-      default:
-        return;
     }
 
-    setElements([...elements, newElement]);
-  };
-
-  const bringForward = () => {
-    if (!selectedId) return;
-    const idx = elements.findIndex(el => el.id === selectedId);
-    if (idx < elements.length - 1) {
-      const newElements = [...elements];
-      [newElements[idx], newElements[idx + 1]] = [newElements[idx + 1], newElements[idx]];
-      setElements(newElements);
-    }
-  };
-
-  const sendBackward = () => {
-    if (!selectedId) return;
-    const idx = elements.findIndex(el => el.id === selectedId);
-    if (idx > 0) {
-      const newElements = [...elements];
-      [newElements[idx], newElements[idx - 1]] = [newElements[idx - 1], newElements[idx]];
-      setElements(newElements);
-    }
+    setElements([...elements, { id, type, props }]);
   };
 
   const handleSave = () => {
@@ -254,30 +110,17 @@ export default function CanvasBoard({ initialElements, designId, design }) {
 
   return (
     <div className="flex flex-col relative">
-
       <PropertiesPanel
-        selectedElement={elements.find((el) => el.id === selectedId)}
-        updateElement={(updatedEl) => {
-          setElements((prev) =>
-            prev.map((el) => (el.id === updatedEl.id ? updatedEl : el))
-          );
-        }}
+        selectedElement={elements.find(el => el.id === selectedId)}
+        updateElement={(updatedEl) => setElements(prev => prev.map(el => el.id === updatedEl.id ? updatedEl : el))}
         setIsEditing={setIsEditing}
       />
 
       <div className="flex flex-wrap gap-2 mb-4">
-        <button onClick={() => addElement('button')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Button</button>
-        <button onClick={() => addElement('input')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Input</button>
-        <button onClick={() => addElement('checkbox')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Checkbox</button>
-        <button onClick={() => addElement('select')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Select</button>
-        <button onClick={() => addElement('image')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Image</button>
-        <button onClick={() => addElement('text')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Text</button>
-        <button onClick={() => addElement('card')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Card</button>
-        <button onClick={() => addElement('grid')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Grid</button>
-        <button onClick={() => addElement('container')} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded">Container</button>
+        {['button', 'input', 'checkbox', 'select', 'image', 'text', 'card', 'grid', 'container'].map((type) => (
+          <button key={type} onClick={() => addElement(type)} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded capitalize">{type}</button>
+        ))}
         <button onClick={handleSave} className="bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded">Guardar Diseño</button>
-        <button onClick={bringForward} className="bg-yellow-400 hover:bg-yellow-500 text-white py-1 px-2 rounded">Traer Adelante</button>
-        <button onClick={sendBackward} className="bg-yellow-400 hover:bg-yellow-500 text-white py-1 px-2 rounded">Enviar Atrás</button>
       </div>
 
       <div className="border-2 border-gray-400 rounded bg-white">
@@ -288,24 +131,54 @@ export default function CanvasBoard({ initialElements, designId, design }) {
           onTouchStart={handleStageClick}
         >
           <Layer ref={layerRef}>
-            {elements.map((el, index) => (
+            {elements.map((el) => (
               <Group
-                key={index}
+                key={el.id}
                 id={el.id}
                 draggable={el.props.draggable}
                 x={el.props.x}
                 y={el.props.y}
                 onClick={() => setSelectedId(el.id)}
-                onTap={() => setSelectedId(el.id)}
               >
-                {(el.type === 'text') && (
-                  <Text
-                    text={el.props.text}
-                    fontSize={el.props.fontSize}
-                    fill={el.props.fill || '#000'}
+                {el.type === 'image' && el.props.src && (
+                  <KonvaImage
+                    image={(function () {
+                      const img = new window.Image();
+                      img.src = el.props.src;
+                      return img;
+                    })()}
+                    width={el.props.width}
+                    height={el.props.height}
                   />
                 )}
-                {(el.type !== 'text') && (
+                {el.type === 'text' && (
+                  <Text text={el.props.text} fontSize={el.props.fontSize} fill={el.props.fill} />
+                )}
+                {el.type === 'card' && (
+                  <>
+                    <Rect width={el.props.width} height={el.props.height} fill={el.props.backgroundColor} stroke={el.props.borderColor} strokeWidth={el.props.borderWidth} />
+                    <Text text={el.props.text} fontSize={18} fill="#333" padding={10} />
+                  </>
+                )}
+                {el.type === 'grid' && (
+                  <>
+                    <Rect width={el.props.width} height={el.props.height} stroke={el.props.lineColor || '#999'} strokeWidth={1} />
+                    {(() => {
+                      const lines = [];
+                      const { rows, columns, width, height, lineColor } = el.props;
+                      for (let i = 1; i < columns; i++) {
+                        const x = (width / columns) * i;
+                        lines.push(<Line key={`v${i}`} points={[x, 0, x, height]} stroke={lineColor || '#999'} strokeWidth={1} />);
+                      }
+                      for (let i = 1; i < rows; i++) {
+                        const y = (height / rows) * i;
+                        lines.push(<Line key={`h${i}`} points={[0, y, width, y]} stroke={lineColor || '#999'} strokeWidth={1} />);
+                      }
+                      return lines;
+                    })()}
+                  </>
+                )}
+                {!['image', 'text', 'card', 'grid'].includes(el.type) && (
                   <>
                     <Rect
                       width={el.props.width}
@@ -313,7 +186,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
                       fill={el.props.fill || el.props.backgroundColor || '#ccc'}
                       cornerRadius={el.props.cornerRadius || 0}
                     />
-                    {(el.props.text) && (
+                    {el.props.text && (
                       <Text
                         text={el.props.text}
                         fontSize={el.props.fontSize || 16}
@@ -333,9 +206,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
         </Stage>
       </div>
 
-      {/* 🚀 Aquí añadimos el botón para exportar */}
       <ExportButton elements={elements} designName={design.name} />
-
     </div>
   );
 }
