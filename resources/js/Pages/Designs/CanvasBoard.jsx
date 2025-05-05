@@ -1,9 +1,12 @@
-// CanvasBoard.jsx actualizado con grid funcional
 import React, { useRef, useState, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Group, Transformer, Image as KonvaImage, Line } from 'react-konva';
 import { router } from '@inertiajs/react';
 import PropertiesPanel from './PropertiesPanel';
 import ExportButton from '@/utils/ExportButton';
+import { io } from 'socket.io-client';
+import { v4 as uuidv4 } from 'uuid';
+
+const socket = io('http://localhost:3001');
 
 export default function CanvasBoard({ initialElements, designId, design }) {
   const [elements, setElements] = useState([]);
@@ -17,10 +20,33 @@ export default function CanvasBoard({ initialElements, designId, design }) {
   }, [initialElements]);
 
   useEffect(() => {
+    socket.emit('join-room', designId);
+
+    socket.on('element-change', (incomingElement) => {
+      setElements((prev) => {
+        const exists = prev.find(el => el.id === incomingElement.id);
+        return exists
+          ? prev.map(el => el.id === incomingElement.id ? incomingElement : el)
+          : [...prev, incomingElement];
+      });
+    });
+
+    socket.on('element-delete', (elementId) => {
+      setElements((prev) => prev.filter(el => el.id !== elementId));
+    });
+
+    return () => {
+      socket.off('element-change');
+      socket.off('element-delete');
+    };
+  }, [designId]);
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (isEditing) return;
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
         setElements((prev) => prev.filter((el) => el.id !== selectedId));
+        socket.emit('element-delete', { designId, elementId: selectedId });
         setSelectedId(null);
       }
       if (e.ctrlKey && e.key === 'd' && selectedId) {
@@ -29,7 +55,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
         if (element) {
           const newElement = {
             ...element,
-            id: `${element.type}-${elements.length + 1}`,
+            id: `${element.type}-${uuidv4()}`,
             props: {
               ...element.props,
               x: element.props.x + 20,
@@ -38,6 +64,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
           };
           setElements((prev) => [...prev, newElement]);
           setSelectedId(newElement.id);
+          socket.emit('element-change', { designId, element: newElement });
         }
       }
     };
@@ -59,13 +86,13 @@ export default function CanvasBoard({ initialElements, designId, design }) {
   const handleStageClick = (e) => {
     if (e.target === e.target.getStage()) {
       setSelectedId(null);
-      return;
+    } else {
+      setSelectedId(e.target.id());
     }
-    setSelectedId(e.target.id());
   };
 
   const addElement = (type) => {
-    const id = `${type}-${elements.length + 1}`;
+    const id = `${type}-${uuidv4()}`;
     let props = { x: 100, y: 100, draggable: true };
 
     switch (type) {
@@ -82,7 +109,12 @@ export default function CanvasBoard({ initialElements, designId, design }) {
         props = { ...props, width: 200, height: 40, options: ['Option 1', 'Option 2'], text: 'Select', fontSize: 16, color: '#000' };
         break;
       case 'image':
-        props = { ...props, width: 100, height: 100, src: '' };
+        props = {
+          ...props,
+          width: 100,
+          height: 100,
+          src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WjyMGwAAAAASUVORK5CYII=',
+        };
         break;
       case 'text':
         props = { ...props, text: 'Sample Text', fontSize: 24, fill: '#000' };
@@ -98,7 +130,9 @@ export default function CanvasBoard({ initialElements, designId, design }) {
         break;
     }
 
-    setElements([...elements, { id, type, props }]);
+    const newElement = { id, type, props };
+    setElements((prev) => [...prev, newElement]);
+    socket.emit('element-change', { designId, element: newElement });
   };
 
   const handleSave = () => {
@@ -112,7 +146,10 @@ export default function CanvasBoard({ initialElements, designId, design }) {
     <div className="flex flex-col relative">
       <PropertiesPanel
         selectedElement={elements.find(el => el.id === selectedId)}
-        updateElement={(updatedEl) => setElements(prev => prev.map(el => el.id === updatedEl.id ? updatedEl : el))}
+        updateElement={(updatedEl) => {
+          setElements(prev => prev.map(el => el.id === updatedEl.id ? updatedEl : el));
+          socket.emit('element-change', { designId, element: updatedEl });
+        }}
         setIsEditing={setIsEditing}
       />
 
@@ -139,17 +176,37 @@ export default function CanvasBoard({ initialElements, designId, design }) {
                 x={el.props.x}
                 y={el.props.y}
                 onClick={() => setSelectedId(el.id)}
+                onDragEnd={(e) => {
+                  const updatedEl = {
+                    ...el,
+                    props: {
+                      ...el.props,
+                      x: e.target.x(),
+                      y: e.target.y(),
+                    }
+                  };
+                  setElements(prev => prev.map(elm => elm.id === el.id ? updatedEl : elm));
+                  socket.emit('element-change', { designId, element: updatedEl });
+                }}
               >
-                {el.type === 'image' && el.props.src && (
-                  <KonvaImage
-                    image={(function () {
-                      const img = new window.Image();
-                      img.src = el.props.src;
-                      return img;
-                    })()}
-                    width={el.props.width}
-                    height={el.props.height}
-                  />
+                {el.type === 'image' && (
+                  <>
+                    <Rect
+                      width={el.props.width}
+                      height={el.props.height}
+                      fill="#eee"
+                      cornerRadius={4}
+                    />
+                    <KonvaImage
+                      image={(function () {
+                        const img = new window.Image();
+                        img.src = el.props.src;
+                        return img;
+                      })()}
+                      width={el.props.width}
+                      height={el.props.height}
+                    />
+                  </>
                 )}
                 {el.type === 'text' && (
                   <Text text={el.props.text} fontSize={el.props.fontSize} fill={el.props.fill} />
