@@ -1,4 +1,3 @@
-// CanvasBoard.jsx actualizado con funciones Adelante/Atrás de objetos
 import React, { useRef, useState, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Group, Transformer, Image as KonvaImage, Line } from 'react-konva';
 import { router } from '@inertiajs/react';
@@ -36,9 +35,19 @@ export default function CanvasBoard({ initialElements, designId, design }) {
       setElements((prev) => prev.filter(el => el.id !== elementId));
     });
 
+    // ✅ ESCUCHAR cambios de Z-INDEX desde otros usuarios
+    socket.on('element-zindex', ({ elementId, direction }) => {
+      const node = layerRef.current.findOne(`#${elementId}`);
+      if (node) {
+        direction === 'up' ? node.moveUp() : node.moveDown();
+        layerRef.current.batchDraw();
+      }
+    });
+
     return () => {
       socket.off('element-change');
       socket.off('element-delete');
+      socket.off('element-zindex');
     };
   }, [designId]);
 
@@ -98,6 +107,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
     if (node) {
       node.moveUp();
       layerRef.current.batchDraw();
+      socket.emit('element-zindex', { designId, elementId: selectedId, direction: 'up' });
     }
   };
 
@@ -107,6 +117,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
     if (node) {
       node.moveDown();
       layerRef.current.batchDraw();
+      socket.emit('element-zindex', { designId, elementId: selectedId, direction: 'down' });
     }
   };
 
@@ -212,12 +223,7 @@ export default function CanvasBoard({ initialElements, designId, design }) {
               >
                 {el.type === 'image' && (
                   <>
-                    <Rect
-                      width={el.props.width}
-                      height={el.props.height}
-                      fill="#eee"
-                      cornerRadius={4}
-                    />
+                    <Rect width={el.props.width} height={el.props.height} fill="#eee" cornerRadius={4} />
                     <KonvaImage
                       image={(function () {
                         const img = new window.Image();
@@ -238,24 +244,22 @@ export default function CanvasBoard({ initialElements, designId, design }) {
                     <Text text={el.props.text} fontSize={18} fill="#333" padding={10} />
                   </>
                 )}
-                {el.type === 'grid' && (
-                  <>
-                    <Rect width={el.props.width} height={el.props.height} stroke={el.props.lineColor || '#999'} strokeWidth={1} />
-                    {(() => {
-                      const lines = [];
-                      const { rows, columns, width, height, lineColor } = el.props;
-                      for (let i = 1; i < columns; i++) {
-                        const x = (width / columns) * i;
-                        lines.push(<Line key={`v${i}`} points={[x, 0, x, height]} stroke={lineColor || '#999'} strokeWidth={1} />);
-                      }
-                      for (let i = 1; i < rows; i++) {
-                        const y = (height / rows) * i;
-                        lines.push(<Line key={`h${i}`} points={[0, y, width, y]} stroke={lineColor || '#999'} strokeWidth={1} />);
-                      }
-                      return lines;
-                    })()}
-                  </>
-                )}
+                {el.type === 'grid' && (() => {
+                  const lines = [];
+                  const { rows, columns, width, height, lineColor } = el.props;
+                  for (let i = 1; i < columns; i++) {
+                    const x = (width / columns) * i;
+                    lines.push(<Line key={`v${i}`} points={[x, 0, x, height]} stroke={lineColor || '#999'} strokeWidth={1} />);
+                  }
+                  for (let i = 1; i < rows; i++) {
+                    const y = (height / rows) * i;
+                    lines.push(<Line key={`h${i}`} points={[0, y, width, y]} stroke={lineColor || '#999'} strokeWidth={1} />);
+                  }
+                  return <>
+                    <Rect width={width} height={height} stroke={lineColor || '#999'} strokeWidth={1} />
+                    {lines}
+                  </>;
+                })()}
                 {!['image', 'text', 'card', 'grid'].includes(el.type) && (
                   <>
                     <Rect
