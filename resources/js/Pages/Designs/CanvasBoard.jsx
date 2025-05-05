@@ -1,3 +1,4 @@
+// CanvasBoard.jsx actualizado con funciones Adelante/Atrás de objetos
 import React, { useRef, useState, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Group, Transformer, Image as KonvaImage, Line } from 'react-konva';
 import { router } from '@inertiajs/react';
@@ -91,6 +92,24 @@ export default function CanvasBoard({ initialElements, designId, design }) {
     }
   };
 
+  const bringForward = () => {
+    if (!selectedId || !layerRef.current) return;
+    const node = layerRef.current.findOne(`#${selectedId}`);
+    if (node) {
+      node.moveUp();
+      layerRef.current.batchDraw();
+    }
+  };
+
+  const sendBackward = () => {
+    if (!selectedId || !layerRef.current) return;
+    const node = layerRef.current.findOne(`#${selectedId}`);
+    if (node) {
+      node.moveDown();
+      layerRef.current.batchDraw();
+    }
+  };
+
   const addElement = (type) => {
     const id = `${type}-${uuidv4()}`;
     let props = { x: 100, y: 100, draggable: true };
@@ -157,6 +176,8 @@ export default function CanvasBoard({ initialElements, designId, design }) {
         {['button', 'input', 'checkbox', 'select', 'image', 'text', 'card', 'grid', 'container'].map((type) => (
           <button key={type} onClick={() => addElement(type)} className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded capitalize">{type}</button>
         ))}
+        <button onClick={bringForward} className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-2 rounded">Adelante</button>
+        <button onClick={sendBackward} className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-2 rounded">Atrás</button>
         <button onClick={handleSave} className="bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded">Guardar Diseño</button>
       </div>
 
